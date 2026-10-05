@@ -400,44 +400,50 @@ class SubquestApp {
   init() {
     this.updatePlayerStatus();
     this.bindEvents();
-    lucide.createIcons();
+    try {
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
+    } catch(e) {}
+  }
+
+  shareSite() {
+    se.playBeep(520, "sine");
+    const shareUrl = window.location.href;
+    const shareText = "「生きる意味？そんなのガチャで引けばいいじゃん。」今日の生きる意味生成器をやってみたww";
+
+    if (navigator.share) {
+      navigator.share({
+        title: "人生のサブクエストガチャ",
+        text: shareText,
+        url: shareUrl
+      }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+      alert("サイトのURLをコピーしました！LINEやSNSで友達に送りつけてみよう！");
+    }
   }
 
   bindEvents() {
-    this.spinBtn.addEventListener("click", () => this.spinGacha());
+    this.spinBtn?.addEventListener("click", () => this.spinGacha());
 
-    this.soundBtn.addEventListener("click", () => {
+    this.soundBtn?.addEventListener("click", () => {
       const enabled = se.toggle();
       if (enabled) {
-        this.soundIcon.setAttribute("data-lucide", "volume-2");
+        this.soundIcon?.setAttribute("data-lucide", "volume-2");
       } else {
-        this.soundIcon.setAttribute("data-lucide", "volume-x");
+        this.soundIcon?.setAttribute("data-lucide", "volume-x");
       }
-      lucide.createIcons();
+      try { window.lucide?.createIcons(); } catch(e) {}
     });
 
-    this.collectionBtn.addEventListener("click", () => this.openCollectionModal());
-    this.closeModalBtn.addEventListener("click", () => this.collectionModal.classList.add("hidden"));
-    this.collectionModal.addEventListener("click", (e) => {
+    this.collectionBtn?.addEventListener("click", () => this.openCollectionModal());
+    this.closeModalBtn?.addEventListener("click", () => this.collectionModal?.classList.add("hidden"));
+    this.collectionModal?.addEventListener("click", (e) => {
       if (e.target === this.collectionModal) this.collectionModal.classList.add("hidden");
     });
 
-    this.shareSiteBtn.addEventListener("click", () => {
-      se.playBeep(520, "sine");
-      const shareUrl = window.location.href;
-      const shareText = "「生きる意味？そんなのガチャで引けばいいじゃん。」今日の生きる意味生成器をやってみたww";
-
-      if (navigator.share) {
-        navigator.share({
-          title: "人生のサブクエストガチャ",
-          text: shareText,
-          url: shareUrl
-        }).catch(() => {});
-      } else {
-        navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
-        alert("サイトのURLをコピーしました！LINEやSNSで友達に送りつけてみよう！");
-      }
-    });
+    this.shareSiteBtn?.addEventListener("click", () => this.shareSite());
   }
 
   updatePlayerStatus() {
@@ -500,12 +506,14 @@ class SubquestApp {
     se.playFanfare(quest.rarity);
 
     // UR/SSR時は紙吹雪！
-    if (quest.rarity === "UR" || quest.rarity === "SSR") {
-      confetti({
-        particleCount: 80,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
+    if ((quest.rarity === "UR" || quest.rarity === "SSR") && typeof confetti === 'function') {
+      try {
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      } catch (e) {}
     }
 
     // レア度に応じたバッジ色とスタイル
@@ -599,21 +607,25 @@ class SubquestApp {
       </div>
     `;
 
-    lucide.createIcons();
+    try {
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
+    } catch (e) {}
 
     // イベント設定
     const completeBtn = document.getElementById("completeBtn");
-    if (!isAlreadyCompleted) {
+    if (!isAlreadyCompleted && completeBtn) {
       completeBtn.addEventListener("click", () => this.completeQuest(quest));
     }
 
-    document.getElementById("respinBtn").addEventListener("click", () => {
+    document.getElementById("respinBtn")?.addEventListener("click", () => {
       se.playBeep(480, "sine");
       this.resultView.classList.add("hidden");
       this.idleView.classList.remove("hidden");
     });
 
-    document.getElementById("shareResultBtn").addEventListener("click", () => {
+    document.getElementById("shareResultBtn")?.addEventListener("click", () => {
       se.playBeep(520, "sine");
       const text = `今日の私の生きる意味は【${quest.title}】(${quest.rarity})でしたwww\n#人生のサブクエストガチャ`;
       const url = window.location.href;
@@ -626,15 +638,21 @@ class SubquestApp {
       }
     });
 
-    document.getElementById("downloadCardBtn").addEventListener("click", () => {
+    document.getElementById("downloadCardBtn")?.addEventListener("click", () => {
       se.playBeep(520, "sine");
       const cardEl = document.getElementById("questCardCapture");
-      html2canvas(cardEl, { scale: 2, backgroundColor: null }).then(canvas => {
-        const link = document.createElement("a");
-        link.download = `生きる意味クエスト_${quest.rarity}_${quest.title.slice(0, 10)}.png`;
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-      });
+      if (typeof html2canvas === 'function' && cardEl) {
+        html2canvas(cardEl, { scale: 2, backgroundColor: null }).then(canvas => {
+          const link = document.createElement("a");
+          link.download = `生きる意味クエスト_${quest.rarity}_${quest.title.slice(0, 10)}.png`;
+          link.href = canvas.toDataURL("image/png");
+          link.click();
+        }).catch(err => {
+          console.warn("Card download error:", err);
+        });
+      } else {
+        alert("スクリーンショット機能が読み込み中です。少々お待ちいただくか、画面キャプチャをご利用ください！");
+      }
     });
   }
 
@@ -653,18 +671,24 @@ class SubquestApp {
 
     // スタンプ表示 & 紙吹雪
     const stamp = document.getElementById("stampContainer");
-    stamp.classList.remove("hidden");
+    if (stamp) stamp.classList.remove("hidden");
 
-    confetti({
-      particleCount: 60,
-      spread: 60,
-      origin: { y: 0.7 }
-    });
+    if (typeof confetti === 'function') {
+      try {
+        confetti({
+          particleCount: 60,
+          spread: 60,
+          origin: { y: 0.7 }
+        });
+      } catch (e) {}
+    }
 
     // ボタンの見た目更新
     const completeBtn = document.getElementById("completeBtn");
-    completeBtn.className = "w-full py-3.5 px-6 rounded-2xl bg-[#DCD4CA] text-[#75685E] border-2 border-[#A8988C] font-black text-base cursor-default flex items-center justify-center gap-2";
-    completeBtn.innerHTML = `<span>達成済みです！ (+${quest.exp} EXP)</span>`;
+    if (completeBtn) {
+      completeBtn.className = "w-full py-3.5 px-6 rounded-2xl bg-[#DCD4CA] text-[#75685E] border-2 border-[#A8988C] font-black text-base cursor-default flex items-center justify-center gap-2";
+      completeBtn.innerHTML = `<span>達成済みです！ (+${quest.exp} EXP)</span>`;
+    }
   }
 
   openCollectionModal() {
@@ -700,7 +724,16 @@ class SubquestApp {
   }
 }
 
-// 起動
-window.addEventListener("DOMContentLoaded", () => {
-  new SubquestApp();
-});
+// 確実に初期化＆グローバル公開
+function startSubquestApp() {
+  if (!window.subquestApp) {
+    window.subquestApp = new SubquestApp();
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener("DOMContentLoaded", startSubquestApp);
+} else {
+  startSubquestApp();
+}
+

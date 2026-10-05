@@ -23,8 +23,8 @@
   <!-- html2canvas -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-  <!-- Custom CSS -->
-  <link rel="stylesheet" href="style.css">
+  <!-- Custom CSS with Cache Buster -->
+  <link rel="stylesheet" href="style.css?v=2.0.1">
 </head>
 <body class="bg-[#FFFDF5] text-[#2B231D] font-rounded selection:bg-[#FFE37E] min-h-screen relative overflow-x-hidden flex flex-col justify-between">
 
@@ -104,7 +104,7 @@
         </p>
 
         <!-- Big Spin Button -->
-        <button id="spinBtn" class="w-full py-4 px-6 rounded-2xl bg-[#FF5A5F] border-3 border-[#2B231D] text-white font-black text-lg tracking-wider shadow-[0_6px_0_#CC393E] hover:bg-[#FF454B] active:translate-y-1.5 active:shadow-[0_0px_0_#CC393E] transition-all flex items-center justify-center gap-2 group">
+        <button id="spinBtn" onclick="window.subquestApp?.spinGacha()" class="w-full py-4 px-6 rounded-2xl bg-[#FF5A5F] border-3 border-[#2B231D] text-white font-black text-lg tracking-wider shadow-[0_6px_0_#CC393E] hover:bg-[#FF454B] active:translate-y-1.5 active:shadow-[0_0px_0_#CC393E] transition-all flex items-center justify-center gap-2 group cursor-pointer">
           <span class="group-hover:rotate-12 transition-transform text-2xl">🎰</span>
           <span>生きる意味ガチャを回す！</span>
         </button>
@@ -128,12 +128,12 @@
 
     <!-- History / Collection Drawer Trigger -->
     <div class="mt-4 flex items-center justify-center gap-3">
-      <button id="collectionBtn" class="text-xs font-black text-[#5C4D44] bg-white border-2 border-[#2B231D] px-3.5 py-1.5 rounded-xl shadow-[2px_2px_0_#2B231D] hover:bg-amber-50 active:translate-y-0.5 transition-all flex items-center gap-1.5">
+      <button id="collectionBtn" onclick="window.subquestApp?.openCollectionModal()" class="text-xs font-black text-[#5C4D44] bg-white border-2 border-[#2B231D] px-3.5 py-1.5 rounded-xl shadow-[2px_2px_0_#2B231D] hover:bg-amber-50 active:translate-y-0.5 transition-all flex items-center gap-1.5 cursor-pointer">
         <i data-lucide="archive" class="w-3.5 h-3.5"></i>
         <span>達成したクエスト一覧 (<span id="completedCountBadge">0</span>)</span>
       </button>
 
-      <button id="shareSiteBtn" class="text-xs font-black text-[#5C4D44] bg-white border-2 border-[#2B231D] px-3.5 py-1.5 rounded-xl shadow-[2px_2px_0_#2B231D] hover:bg-amber-50 active:translate-y-0.5 transition-all flex items-center gap-1.5">
+      <button id="shareSiteBtn" onclick="window.subquestApp?.shareSite()" class="text-xs font-black text-[#5C4D44] bg-white border-2 border-[#2B231D] px-3.5 py-1.5 rounded-xl shadow-[2px_2px_0_#2B231D] hover:bg-amber-50 active:translate-y-0.5 transition-all flex items-center gap-1.5 cursor-pointer">
         <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
         <span>友達に送りつける</span>
       </button>
@@ -149,7 +149,7 @@
           <span class="text-xl">🏆</span>
           <h3 class="font-black text-base text-[#2B231D]">達成済み生きる意味図鑑</h3>
         </div>
-        <button id="closeModalBtn" class="w-8 h-8 rounded-full bg-white border-2 border-[#2B231D] flex items-center justify-center font-black shadow-[1px_1px_0_#2B231D] hover:bg-rose-100">
+        <button id="closeModalBtn" onclick="document.getElementById('collectionModal').classList.add('hidden')" class="w-8 h-8 rounded-full bg-white border-2 border-[#2B231D] flex items-center justify-center font-black shadow-[1px_1px_0_#2B231D] hover:bg-rose-100 cursor-pointer">
           ✕
         </button>
       </div>
@@ -166,6 +166,6 @@
     </p>
   </footer>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=2.0.1"></script>
 </body>
 </html>
