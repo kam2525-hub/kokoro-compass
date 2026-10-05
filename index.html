@@ -3,87 +3,169 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>こもれびの羅針盤 | 心がほっとする、生きる意味の見つけ方</title>
-  <meta name="description" content="生きる意味に迷ったとき、大きな答えを探す代わりに、あなたの日常にある小さな光や温もりを思い出すための優しいガイド。">
-  
-  <!-- Google Fonts -->
+  <title>人生のサブクエストガチャ | 今日の生きる意味生成器</title>
+  <meta name="description" content="壮大な生きる意味とか探すの疲れた？今日の生きる意味なんてガチャで引けばいいじゃん。ボタン1つで日常のくだらなくて最高なミッションを無限に排出するサイト。">
+
+  <!-- Google Fonts: Yuji Boku, DotGothic16, M PLUS Rounded 1c -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700&family=Zen+Maru+Gothic:wght@300;400;500;700&display=swap" rel="stylesheet">
-  
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800;900&family=DotGothic16&display=swap" rel="stylesheet">
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  
+
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  
-  <!-- html2canvas for card download -->
+
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- html2canvas -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
   <!-- Custom CSS -->
   <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-[#FAF7F2] text-[#4A443F] font-zen selection:bg-[#EADBC8] selection:text-[#4A443F] min-h-screen relative overflow-x-hidden flex flex-col justify-between">
+<body class="bg-[#FFFDF5] text-[#2B231D] font-rounded selection:bg-[#FFE37E] min-h-screen relative overflow-x-hidden flex flex-col justify-between">
 
-  <!-- Background Ambient Lights -->
-  <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-    <div class="ambient-glow bg-[#FCE8D5] w-[450px] h-[450px] -top-24 -left-24 rounded-full blur-[100px] opacity-70 animate-float-slow"></div>
-    <div class="ambient-glow bg-[#E4ECE3] w-[500px] h-[500px] top-1/2 -right-36 rounded-full blur-[110px] opacity-60 animate-float-medium"></div>
-    <div class="ambient-glow bg-[#F7EFE4] w-[400px] h-[400px] -bottom-24 left-1/3 rounded-full blur-[90px] opacity-70 animate-float-slow"></div>
+  <!-- Background Dots & Fun Shapes -->
+  <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-50">
+    <div class="absolute -top-12 -left-12 w-64 h-64 bg-[#FFE875] rounded-full blur-3xl opacity-60"></div>
+    <div class="absolute top-1/3 -right-16 w-80 h-80 bg-[#FFB5B5] rounded-full blur-3xl opacity-50"></div>
+    <div class="absolute -bottom-16 left-1/4 w-72 h-72 bg-[#A3E5FF] rounded-full blur-3xl opacity-60"></div>
+    <div class="bg-pattern w-full h-full"></div>
   </div>
 
   <!-- Header -->
-  <header class="relative z-10 w-full max-w-3xl mx-auto px-6 py-6 flex items-center justify-between">
-    <div class="flex items-center gap-2 cursor-pointer" onclick="app.resetToStart()">
-      <div class="w-9 h-9 rounded-full bg-[#E8DDD1] flex items-center justify-center text-[#705E51] shadow-inner">
-        <i data-lucide="compass" class="w-5 h-5"></i>
+  <header class="relative z-10 w-full max-w-xl mx-auto px-4 py-4 sm:py-6 flex items-center justify-between">
+    <div class="flex items-center gap-2.5">
+      <div class="w-10 h-10 rounded-2xl bg-[#FF5A5F] text-white flex items-center justify-center font-black text-xl shadow-[0_4px_0_#CC393E] transform -rotate-3">
+        <span>🎮</span>
       </div>
       <div>
-        <span class="text-sm font-semibold tracking-wider text-[#63554A] font-mincho block leading-tight">こもれびの羅針盤</span>
-        <span class="text-[11px] text-[#9E8E81] tracking-widest block">KOMOREBI COMPASS</span>
+        <h1 class="text-base sm:text-lg font-black tracking-tight text-[#2B231D] leading-tight">
+          人生のサブクエストガチャ
+        </h1>
+        <p class="text-[11px] font-bold text-[#FF5A5F] tracking-wide">
+          ＼ 今日の生きる意味ジェネレーター ／
+        </p>
       </div>
     </div>
 
-    <!-- Sound & Ambient Audio Toggle -->
+    <!-- Status & Sound Toggle -->
     <div class="flex items-center gap-2">
-      <button id="soundToggleBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs bg-white/70 backdrop-blur-md border border-[#E5DACD] text-[#6E6053] hover:bg-white transition-all shadow-sm active:scale-95" title="優しい音と音楽を切り替え">
-        <i data-lucide="volume-2" id="soundIcon" class="w-4 h-4 text-[#8C7A6B]"></i>
-        <span id="soundText" class="text-xs">音: オン</span>
-      </button>
-      <button id="restartBtn" class="p-1.5 rounded-full text-xs bg-white/60 border border-[#E5DACD] text-[#8C7A6B] hover:bg-white hover:text-[#53463B] transition-all shadow-sm hidden" title="最初からやり直す" onclick="app.resetToStart()">
-        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+      <!-- User Level Badge -->
+      <div class="px-3 py-1 bg-white border-2 border-[#2B231D] rounded-full text-xs font-black shadow-[2px_2px_0_#2B231D] flex items-center gap-1.5">
+        <span class="text-amber-500">⭐</span>
+        <span id="playerLevelText">Lv.1 一般人</span>
+      </div>
+
+      <!-- Sound Button -->
+      <button id="soundBtn" class="w-9 h-9 rounded-full bg-white border-2 border-[#2B231D] flex items-center justify-center text-[#2B231D] shadow-[2px_2px_0_#2B231D] hover:bg-amber-100 active:translate-y-0.5 transition-all" title="効果音切り替え">
+        <i data-lucide="volume-2" id="soundIcon" class="w-4 h-4"></i>
       </button>
     </div>
   </header>
 
   <!-- Main Container -->
-  <main class="relative z-10 w-full max-w-2xl mx-auto px-4 sm:px-6 py-4 flex-grow flex flex-col justify-center">
+  <main class="relative z-10 w-full max-w-md mx-auto px-4 flex-grow flex flex-col justify-center">
 
-    <!-- Progress Indicator (Hidden on intro and result) -->
-    <div id="progressContainer" class="mb-6 hidden transition-all duration-500">
-      <div class="flex justify-between items-center text-xs text-[#9E8E81] mb-2 px-1">
-        <span id="stepCategoryText" class="font-medium tracking-wide">心のたな卸し</span>
-        <span id="stepCountText" class="tabular-nums font-semibold text-[#7D6B5D]">1 / 5</span>
-      </div>
-      <div class="w-full bg-[#E8E0D5] h-1.5 rounded-full overflow-hidden">
-        <div id="progressBar" class="bg-gradient-to-r from-[#D7BAA2] to-[#B3C9B2] h-full rounded-full transition-all duration-500 ease-out" style="width: 20%;"></div>
-      </div>
+    <!-- Top Speech Bubble -->
+    <div class="relative bg-white border-2 border-[#2B231D] rounded-2xl p-4 shadow-[4px_4px_0_#2B231D] mb-5 text-center">
+      <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[12px] border-t-[#2B231D]"></div>
+      <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[10px] border-t-white"></div>
+      <p class="text-xs sm:text-sm font-extrabold text-[#3B2F2F] leading-snug">
+        「生きる意味？そんな壮大なもの探すのやめろ！<br class="hidden sm:inline">
+        今日の生きる意味は<span class="text-[#FF5A5F] underline decoration-wavy">ガチャで引いて適当にこなす</span>んだよ！」
+      </p>
     </div>
 
-    <!-- Dynamic Screen Container -->
-    <div id="screenContainer" class="bg-white/80 backdrop-blur-xl border border-white/70 rounded-3xl p-6 sm:p-10 shadow-[0_15px_40px_-15px_rgba(180,165,150,0.18)] transition-all duration-400 min-h-[460px] flex flex-col justify-between">
-      <!-- Injected by JavaScript -->
+    <!-- Gacha Machine Display / Card Area -->
+    <div id="gachaArea" class="relative">
+
+      <!-- Initial / Idle Gacha Capsule Display -->
+      <div id="idleView" class="bg-white border-3 border-[#2B231D] rounded-3xl p-6 sm:p-8 shadow-[6px_6px_0_#2B231D] text-center flex flex-col items-center">
+        
+        <!-- Animated Capsule Icon -->
+        <div class="relative w-32 h-32 mb-6 flex items-center justify-center">
+          <div class="capsule-bounce text-7xl select-none">
+            💊
+          </div>
+          <div class="absolute -top-1 -right-1 bg-[#FFE37E] border-2 border-[#2B231D] px-2 py-0.5 rounded-full text-[10px] font-black shadow-[2px_2px_0_#2B231D] animate-bounce">
+            全100種以上！
+          </div>
+        </div>
+
+        <h2 class="text-lg font-black text-[#2B231D] mb-1">
+          今日の生きる意味がまだありません！
+        </h2>
+        <p class="text-xs text-[#7A6B63] mb-6">
+          ガチャを回して、今日地球に滞在する理由を受注しよう。
+        </p>
+
+        <!-- Big Spin Button -->
+        <button id="spinBtn" class="w-full py-4 px-6 rounded-2xl bg-[#FF5A5F] border-3 border-[#2B231D] text-white font-black text-lg tracking-wider shadow-[0_6px_0_#CC393E] hover:bg-[#FF454B] active:translate-y-1.5 active:shadow-[0_0px_0_#CC393E] transition-all flex items-center justify-center gap-2 group">
+          <span class="group-hover:rotate-12 transition-transform text-2xl">🎰</span>
+          <span>生きる意味ガチャを回す！</span>
+        </button>
+
+        <p class="text-[11px] text-[#A8988F] font-bold mt-3">
+          ※ 完全に無料 & 何回でも引き直し可能
+        </p>
+      </div>
+
+      <!-- Result Card (Hidden Initially) -->
+      <div id="resultView" class="hidden">
+        <!-- Injected dynamically by app.js -->
+      </div>
+
+    </div>
+
+    <!-- Active Quest Box (if accepted) -->
+    <div id="questBoxContainer" class="mt-4 hidden">
+      <!-- Injected dynamically -->
+    </div>
+
+    <!-- History / Collection Drawer Trigger -->
+    <div class="mt-4 flex items-center justify-center gap-3">
+      <button id="collectionBtn" class="text-xs font-black text-[#5C4D44] bg-white border-2 border-[#2B231D] px-3.5 py-1.5 rounded-xl shadow-[2px_2px_0_#2B231D] hover:bg-amber-50 active:translate-y-0.5 transition-all flex items-center gap-1.5">
+        <i data-lucide="archive" class="w-3.5 h-3.5"></i>
+        <span>達成したクエスト一覧 (<span id="completedCountBadge">0</span>)</span>
+      </button>
+
+      <button id="shareSiteBtn" class="text-xs font-black text-[#5C4D44] bg-white border-2 border-[#2B231D] px-3.5 py-1.5 rounded-xl shadow-[2px_2px_0_#2B231D] hover:bg-amber-50 active:translate-y-0.5 transition-all flex items-center gap-1.5">
+        <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+        <span>友達に送りつける</span>
+      </button>
     </div>
 
   </main>
 
+  <!-- Modal for Collection -->
+  <div id="collectionModal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white border-3 border-[#2B231D] rounded-3xl w-full max-w-md max-h-[80vh] flex flex-col shadow-[8px_8px_0_#2B231D] overflow-hidden">
+      <div class="p-4 border-b-2 border-[#2B231D] bg-[#FFF8D6] flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🏆</span>
+          <h3 class="font-black text-base text-[#2B231D]">達成済み生きる意味図鑑</h3>
+        </div>
+        <button id="closeModalBtn" class="w-8 h-8 rounded-full bg-white border-2 border-[#2B231D] flex items-center justify-center font-black shadow-[1px_1px_0_#2B231D] hover:bg-rose-100">
+          ✕
+        </button>
+      </div>
+      <div id="collectionList" class="p-4 overflow-y-auto space-y-2 flex-grow">
+        <!-- Injected by JS -->
+      </div>
+    </div>
+  </div>
+
   <!-- Footer -->
-  <footer class="relative z-10 w-full max-w-2xl mx-auto px-6 py-6 text-center text-xs text-[#9D8E82] leading-relaxed">
-    <p>生きる意味は、どこかに隠れている宝物ではなく、今この瞬間に灯るあかりです。</p>
-    <p class="mt-1 text-[11px] opacity-75">入力内容はブラウザ内でのみ処理され、外部には一切送信されません。</p>
+  <footer class="relative z-10 w-full max-w-md mx-auto px-4 py-4 text-center">
+    <p class="text-[11px] font-bold text-[#8C7A6F]">
+      生きてるだけで大体100点満点。残りはボーナスステージです。
+    </p>
   </footer>
 
-  <!-- Script -->
   <script src="app.js"></script>
 </body>
 </html>

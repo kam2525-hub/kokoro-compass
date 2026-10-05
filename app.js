@@ -1,16 +1,13 @@
 /**
- * こもれびの羅針盤 (Komorebi Compass)
- * 生きる意味に迷ったとき、日常の小さな光と安心感を思い出すためのWebアプリケーション
+ * 人生のサブクエストガチャ (Subquest Gacha)
+ * 今日の生きる意味をガチャで引いて適当にクリアするWebアプリ
  */
 
-// --- 音響システム (Web Audio API - 外部ファイル不要で動作) ---
-class SoundManager {
+// --- 音響システム (Web Audio API - ピコピコゲーム風SE) ---
+class SoundEffects {
   constructor() {
     this.ctx = null;
-    this.isEnabled = false;
-    this.ambientOscillators = [];
-    this.ambientGain = null;
-    this.ambientInterval = null;
+    this.enabled = true;
   }
 
   init() {
@@ -25,926 +22,685 @@ class SoundManager {
 
   toggle() {
     this.init();
-    this.isEnabled = !this.isEnabled;
-    if (this.isEnabled) {
-      this.startAmbient();
-      this.playNote(523.25, 0.4); // C5
-    } else {
-      this.stopAmbient();
-    }
-    return this.isEnabled;
+    this.enabled = !this.enabled;
+    return this.enabled;
   }
 
-  // 優しいカリンバ・オルゴール風の音
-  playNote(freq = 440, duration = 0.5, type = 'sine') {
-    if (!this.isEnabled || !this.ctx) return;
+  // 短いピコッ音（ボタン等）
+  playBeep(freq = 440, type = 'square', duration = 0.08) {
+    if (!this.enabled) return;
+    this.init();
     try {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
-
       osc.type = type;
       osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-
-      gain.gain.setValueAtTime(0.001, this.ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.12, this.ctx.currentTime + 0.04);
-      gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
-
+      gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
       osc.connect(gain);
       gain.connect(this.ctx.destination);
-
       osc.start();
       osc.stop(this.ctx.currentTime + duration);
-    } catch (e) {
-      console.warn("Audio play note error:", e);
-    }
+    } catch (e) {}
   }
 
-  // ボタン押下音（温かみのあるポーンという音）
-  playTap() {
-    const notes = [523.25, 587.33, 659.25, 783.99, 880.00]; // Pentatonic C D E G A
-    const note = notes[Math.floor(Math.random() * notes.length)];
-    this.playNote(note, 0.6);
+  // ガチャドラムロール音
+  playDrumroll() {
+    if (!this.enabled) return;
+    this.init();
+    let count = 0;
+    const interval = setInterval(() => {
+      this.playBeep(200 + count * 30, 'sawtooth', 0.05);
+      count++;
+      if (count > 12) clearInterval(interval);
+    }, 70);
   }
 
-  // 決定・完了時の和音
-  playChord() {
-    if (!this.isEnabled) return;
-    [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
-      setTimeout(() => this.playNote(freq, 0.8), idx * 90);
+  // ガチャ排出・ファンファーレ
+  playFanfare(rarity) {
+    if (!this.enabled) return;
+    this.init();
+    const notes = rarity === 'UR' || rarity === 'SSR'
+      ? [523.25, 659.25, 783.99, 1046.50, 1318.51] // C E G C E
+      : [440, 554.37, 659.25, 880];
+
+    notes.forEach((freq, idx) => {
+      setTimeout(() => {
+        this.playBeep(freq, 'triangle', 0.25);
+      }, idx * 100);
     });
   }
 
-  // 静かなアンビエント（木漏れ日のような穏やかな和音ドローン）
-  startAmbient() {
-    if (!this.ctx || this.ambientInterval) return;
-    const chords = [
-      [261.63, 329.63, 392.00, 493.88], // Cmaj7
-      [220.00, 261.63, 329.63, 392.00], // Am7
-      [174.61, 220.00, 261.63, 329.63], // Fmaj7
-      [196.00, 246.94, 293.66, 392.00]  // G
-    ];
-    let chordIdx = 0;
-
-    const playAmbientChord = () => {
-      if (!this.isEnabled || !this.ctx) return;
-      const currentChord = chords[chordIdx % chords.length];
-      chordIdx++;
-
-      currentChord.forEach((freq) => {
-        try {
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-
-          gain.gain.setValueAtTime(0.0001, this.ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.015, this.ctx.currentTime + 2.5);
-          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 7.5);
-
-          osc.connect(gain);
-          gain.connect(this.ctx.destination);
-
-          osc.start();
-          osc.stop(this.ctx.currentTime + 8);
-        } catch (e) {}
-      });
-    };
-
-    playAmbientChord();
-    this.ambientInterval = setInterval(playAmbientChord, 7000);
-  }
-
-  stopAmbient() {
-    if (this.ambientInterval) {
-      clearInterval(this.ambientInterval);
-      this.ambientInterval = null;
-    }
+  // クエスト達成音
+  playSuccess() {
+    if (!this.enabled) return;
+    this.init();
+    [587.33, 739.99, 880, 1174.66].forEach((freq, idx) => {
+      setTimeout(() => {
+        this.playBeep(freq, 'sine', 0.2);
+      }, idx * 80);
+    });
   }
 }
 
-const sound = new SoundManager();
+const se = new SoundEffects();
 
-// --- アプリケーション状態 & 質問データ ---
-const QUESTIONS = [
+// --- 生きる意味サブクエスト データベース ---
+const QUEST_POOL = [
+  // === N (ノーマル: 日常のささやかな幸せ) ===
   {
-    category: "五感のひかり",
-    title: "最近、体がほっとしたり、「あ、美味しいな」「気持ちいいな」と感じた瞬間はありますか？",
-    subtitle: "生きる実感は、壮大な目的ではなく、五感が味わう小さな心地よさから始まります。",
-    chips: [
-      "お布団のぬくもり",
-      "温かいお茶やコーヒー",
-      "湯船に浸かった瞬間",
-      "澄んだ朝の空気",
-      "好きな音楽を聴いた時",
-      "美味しいご飯を食べた時",
-      "ペットを撫でた時",
-      "日向ぼっこの暖かさ"
-    ],
-    placeholder: "例：朝起きて飲んだ白湯が美味しかった、帰り道の夕焼けが綺麗だった…など",
-    storageKey: "senses"
+    id: "n1",
+    rarity: "N",
+    title: "コンビニの新作アイス棚を5分間真剣に品評する",
+    difficulty: "★☆☆☆☆",
+    exp: 50,
+    category: "食欲解放",
+    comment: "買うか買わないかは自由。ただ『今の企業努力すげえな』と感心するだけで生きる意味は達成されます。",
+    icon: "🍦"
   },
   {
-    category: "心がほどける時間",
-    title: "誰の目も気にせず、時間を忘れて浸れること（あるいは何も考えずにいられる時間）は何ですか？",
-    subtitle: "誰かの役に立たなくてもいい。あなたが「ふっと肩の荷を下ろせる避難所」です。",
-    chips: [
-      "あてもなく散歩する",
-      "ぼーっと空や天井を眺める",
-      "好きな動画やアニメを見る",
-      "ゲームに没頭する",
-      "ひたすら深く眠る",
-      "お気に入りの本を開く",
-      "好きな音楽を爆音で聴く",
-      "部屋をすこし片付ける"
-    ],
-    placeholder: "例：夜中に一人で散歩している時、好きなゲームの世界にいる時…など",
-    storageKey: "unwind"
+    id: "n2",
+    rarity: "N",
+    title: "靴下を脱ぎ捨てて足の指を限界までパーにする",
+    difficulty: "★☆☆☆☆",
+    exp: 40,
+    category: "身体解放",
+    comment: "人類が靴という拘束具から解き放たれる至福の瞬間。足の指の解放感こそが人生の原点です。",
+    icon: "👣"
   },
   {
-    category: "誰かとのぬくもり",
-    title: "誰かに「ありがとう」と思ったこと、または誰かがいてくれて良かったなと感じた記憶は？",
-    subtitle: "人との繋がりは、時に重荷にもなりますが、時に生きる灯火にもなります。",
-    chips: [
-      "友達と他愛もない話をした",
-      "店員さんの笑顔や気遣い",
-      "家族がさりげなく支えてくれた",
-      "推しや好きな人が元気をくれた",
-      "誰かの相談に乗って喜ばれた",
-      "昔かけてもらった優しい言葉",
-      "言葉がなくても隣にいてくれた人"
-    ],
-    placeholder: "例：コンビニで「ありがとう」と言えたこと、友達がくだらないことで笑ってくれたこと…など",
-    storageKey: "connection"
+    id: "n3",
+    rarity: "N",
+    title: "ポテチの袋の底に溜まった細かい破片を一気に口に流し込む",
+    difficulty: "★☆☆☆☆",
+    exp: 60,
+    category: "背徳感",
+    comment: "塩分と旨味が凝縮された最後の一撃。お行儀の良さを捨て去った者だけに許された神の一口。",
+    icon: "🥔"
   },
   {
-    category: "ちいさな好奇心",
-    title: "もし失敗も評価もお金も気にしなくていいなら、ちょっとやってみたい・覗いてみたいことは？",
-    subtitle: "立派な夢じゃなくて構いません。「ちょっと気になる」好奇心の芽です。",
-    chips: [
-      "知らない街を一人で歩く",
-      "海や山で一日中のんびりする",
-      "目覚ましをかけずに寝倒す",
-      "気になる本を一日中読む",
-      "美味しいものを限界まで食べる",
-      "星空を見に行く",
-      "新しい趣味を少しだけかじる",
-      "何もしない贅沢を味わう"
-    ],
-    placeholder: "例：海辺のカフェで何時間も読書したい、星が綺麗な場所に行ってみたい…など",
-    storageKey: "curiosity"
+    id: "n4",
+    rarity: "N",
+    title: "お風呂上がりに腰に手を当てて冷たい飲み物をグッと飲む",
+    difficulty: "★☆☆☆☆",
+    exp: 50,
+    category: "王道儀式",
+    comment: "牛乳でも麦茶でも炭酸でも可。声に出して『ぷはぁーっ！』と言えたら追加経験値獲得。",
+    icon: "🥛"
   },
   {
-    category: "大切にしたい感覚",
-    title: "これからの日々で、何よりも大切に守ってあげたいあなたの「心の状態」はどれですか？",
-    subtitle: "これは、あなただけの人生の「北極星（コンパス）」になります。（最大2つまで）",
-    type: "compass",
-    options: [
-      { id: "peace", label: "安心・平穏", desc: "穏やかで、脅かされず、無理のない日々", icon: "shield-check" },
-      { id: "freedom", label: "自由・身軽さ", desc: "誰にも縛られず、自分のペースで歩むこと", icon: "wind" },
-      { id: "warmth", label: "小さな温もり", desc: "日々のささやかな喜びやご飯を味わうこと", icon: "coffee" },
-      { id: "connection", label: "心のつながり", desc: "大切に思える人や生き物と心を通わせること", icon: "heart" },
-      { id: "wonder", label: "好奇心・探求", desc: "まだ見ぬ面白いものや美しい景色に出会うこと", icon: "sparkles" },
-      { id: "authenticity", label: "自分らしさ", desc: "周りの期待ではなく、自分の気持ちに正直でいること", icon: "smile" }
-    ],
-    storageKey: "compass"
+    id: "n5",
+    rarity: "N",
+    title: "YouTubeで動物がただ寝てるだけの動画を3本見る",
+    difficulty: "★☆☆☆☆",
+    exp: 45,
+    category: "脳内洗浄",
+    comment: "犬でも猫でもパンダでもOK。役に立たない情報を浴びることこそが休日の真髄。",
+    icon: "🐱"
+  },
+  {
+    id: "n6",
+    rarity: "N",
+    title: "ペットボトルのキャップを一発でゴミ箱にスナイプする",
+    difficulty: "★★☆☆☆",
+    exp: 70,
+    category: "日常スポーツ",
+    comment: "入ったらガッツポーズ。外れたら誰にも見られてないことを確認して拾いに行きましょう。",
+    icon: "🎯"
+  },
+  {
+    id: "n7",
+    rarity: "N",
+    title: "信号で青になった瞬間に『今、俺が世界を動かした』と思う",
+    difficulty: "★☆☆☆☆",
+    exp: 50,
+    category: "中二病セラピー",
+    comment: "ただの歩行者用信号ですが、あなたが歩き出すために青になったと解釈してください。",
+    icon: "🚥"
+  },
+
+  // === R (レア: ちょっとテンション上がる瞬間) ===
+  {
+    id: "r1",
+    rarity: "R",
+    title: "散歩中に猫を見かけて心の中で『お疲れ様です』と敬礼する",
+    difficulty: "★★☆☆☆",
+    exp: 120,
+    category: "地域交流",
+    comment: "目があっても深追いは禁物。クールに心の中でエールを送り合うのが大人の作法です。",
+    icon: "🐈"
+  },
+  {
+    id: "r2",
+    rarity: "R",
+    title: "金曜の夜に『明日アラーム鳴らさなくていい事実』を噛み締める",
+    difficulty: "★☆☆☆☆",
+    exp: 150,
+    category: "精神勝利",
+    comment: "アラームを全OFFにする瞬間の脳内麻薬は、どんな高級スパよりも効きます。",
+    icon: "⏰"
+  },
+  {
+    id: "r3",
+    rarity: "R",
+    title: "スーパーでちょうど半額シールが貼られた瞬間の惣菜を奪取する",
+    difficulty: "★★★☆☆",
+    exp: 180,
+    category: "ハンター",
+    comment: "店員さんの背後に忍び寄り、貼られた瞬間にサッとカゴへ。今日という日の勝者はあなたです。",
+    icon: "🏷️"
+  },
+  {
+    id: "r4",
+    rarity: "R",
+    title: "深夜0時を過ぎてから罪深いカップ麺にお湯を注ぐ",
+    difficulty: "★★☆☆☆",
+    exp: 160,
+    category: "深夜の背徳",
+    comment: "カロリーとは『美味しさの単位』。深夜3分間のタイマー音は人生最高のBGMです。",
+    icon: "🍜"
+  },
+  {
+    id: "r5",
+    rarity: "R",
+    title: "新品のノートや本を開いて最初のページの匂いを深く嗅ぐ",
+    difficulty: "★☆☆☆☆",
+    exp: 110,
+    category: "変態的快感",
+    comment: "インクと紙の独特なアロマ。勉強や読書をしなくても、匂いを嗅いだ時点で50%完了です。",
+    icon: "📖"
+  },
+  {
+    id: "r6",
+    rarity: "R",
+    title: "自動ドアが開く瞬間に心の中でハンドパワーを送る",
+    difficulty: "★★☆☆☆",
+    exp: 130,
+    category: "超能力訓練",
+    comment: "タイミングがバッチリ合えば、あたかも自分の念動力で開いたかのような優越感に浸れます。",
+    icon: "🚪"
+  },
+  {
+    id: "r7",
+    rarity: "R",
+    title: "雨の日に『今日は一歩も外に出ないぞ』という鉄の決意を固める",
+    difficulty: "★☆☆☆☆",
+    exp: 140,
+    category: "引きこもり",
+    comment: "雨音をBGMにお布団に潜り込む快感。外で戦う人々への敬意を払いつつ二度寝しましょう。",
+    icon: "🌧️"
+  },
+
+  // === SR (スーパーレア: 日常の小さな奇跡) ===
+  {
+    id: "sr1",
+    rarity: "SR",
+    title: "目的地までの信号に一度も引っかからず『選ばれし者』になる",
+    difficulty: "★★★★☆",
+    exp: 300,
+    category: "奇跡の遭遇",
+    comment: "街全体があなたのために青信号をプレゼントしてくれた奇跡。今日宝くじ買ってもいいレベル。",
+    icon: "⚡"
+  },
+  {
+    id: "sr2",
+    rarity: "SR",
+    title: "美容室のシャンプーで『痒いとこないですか？』に完璧な呼吸で『大丈夫です』と返す",
+    difficulty: "★★★☆☆",
+    exp: 280,
+    category: "コミュ力極",
+    comment: "喉に力を入れず、穏やかかつ聞き取りやすいトーンで返す芸術的コミュニケーション。",
+    icon: "💇"
+  },
+  {
+    id: "sr3",
+    rarity: "SR",
+    title: "布団の『まだ誰も温めてないひんやりしたゾーン』を足先で発掘する",
+    difficulty: "★★☆☆☆",
+    exp: 260,
+    category: "秘境探検",
+    comment: "冬はあたたかい場所を、夏はつめたい場所を。足先が未知のオアシスに触れた時の感動。",
+    icon: "🛌"
+  },
+  {
+    id: "sr4",
+    rarity: "SR",
+    title: "卵を片手で割ろうとして殻をひとつも入れずに成功させる",
+    difficulty: "★★★★☆",
+    exp: 320,
+    category: "神業クッキング",
+    comment: "フライパンの縁でコンッ！パカッ！ジュワー！もし殻が入ったらなかったことにしましょう。",
+    icon: "🍳"
+  },
+  {
+    id: "sr5",
+    rarity: "SR",
+    title: "友達にめちゃくちゃくだらないネットミームを送りつけて反応を待つ",
+    difficulty: "★★☆☆☆",
+    exp: 250,
+    category: "友情の証明",
+    comment: "「草」の一言が返ってきたらクエスト達成。無駄話ができる友達がいることこそ人生の宝です。",
+    icon: "📱"
+  },
+
+  // === SSR (超激レア: 悟りの境地) ===
+  {
+    id: "ssr1",
+    rarity: "SSR",
+    title: "今日一日生き延びて、地球の植物に二酸化炭素を安定供給する",
+    difficulty: "★☆☆☆☆",
+    exp: 600,
+    category: "地球規模貢献",
+    comment: "あなたが吸った酸素と吐いた息のおかげで森が潤っています。立派な地球の環境保全活動です。",
+    icon: "🌍"
+  },
+  {
+    id: "ssr2",
+    rarity: "SSR",
+    title: "『まあ明日地球が滅亡するかもだしな』と唱えて宿題・タスクを後回しにする",
+    difficulty: "★★☆☆☆",
+    exp: 650,
+    category: "脱力奥義",
+    comment: "明日の自分は今日の自分より優秀であるという強い信頼（他力本願）に基づく崇高な決断。",
+    icon: "🌌"
+  },
+  {
+    id: "ssr3",
+    rarity: "SSR",
+    title: "自販機で一番売れてなさそうな謎ジュースを買って『悪くないな』と呟く",
+    difficulty: "★★★★☆",
+    exp: 700,
+    category: "開拓者精神",
+    comment: "誰も選ばない選択肢をあえて愛でる孤独のグルメ。世間の流行に流されない真の強者です。",
+    icon: "🥤"
+  },
+  {
+    id: "ssr4",
+    rarity: "SSR",
+    title: "休日に14時まで爆睡して『寝すぎて腰痛えわwww』と高笑いする",
+    difficulty: "★★☆☆☆",
+    exp: 620,
+    category: "時間富豪",
+    comment: "「一日を無駄にした」と悔やんではいけません。「半日を贅沢に溶かした」と胸を張るのです。",
+    icon: "😴"
+  },
+
+  // === UR (神話級: 究極の生きる意味) ===
+  {
+    id: "ur1",
+    rarity: "UR",
+    title: "生きる意味を探すのを完全に放棄して、目の前のポテチを無心で食べる神になる",
+    difficulty: "★★★★★",
+    exp: 1500,
+    category: "全知全能",
+    comment: "意味なんて最初から無かった。美味しいものを食べて寝る、それ以上の高尚な哲学がこの世にあるだろうか？",
+    icon: "👑"
+  },
+  {
+    id: "ur2",
+    rarity: "UR",
+    title: "人類80億人の中で、今日この瞬間にこの画面を見て笑った唯一の存在になる",
+    difficulty: "★★★★★",
+    exp: 1800,
+    category: "奇跡の特異点",
+    comment: "あなたの存在確率は天文学的数字。今日あなたがここにいるだけで、宇宙の歴史のハイライトです。",
+    icon: "🌟"
+  },
+  {
+    id: "ur3",
+    rarity: "UR",
+    title: "「生きて息してるだけで偉すぎでは？？？」と自分に名誉市民賞を授与する",
+    difficulty: "★★★★★",
+    exp: 2000,
+    category: "自己肯定極振",
+    comment: "心臓は休まず動き、内臓は働き、あなたは今呼吸をしている。すでに全自動で偉業達成中です。",
+    icon: "🎖️"
   }
 ];
 
-// 心に寄り添う言葉の処方箋（哲学・心理学・文学・日常の知恵）
-const PRESCRIPTIONS = [
-  {
-    id: 1,
-    quote: "人生の意味を問うてはならない。私たちが人生から問われているのだ。人生があなたを待っている。",
-    author: "ヴィクトール・フランクル（精神科医 / 『夜と霧』）",
-    interpretation: "あなたが何か大きな意味を探さなくても、あなたの笑顔や、あなたにしかできない役割を、待っている人や未来が必ずあります。"
-  },
-  {
-    id: 2,
-    quote: "人生とは、今この瞬間を真剣に踊るダンスのようなものだ。目的地に着くことではなく、踊っている今そのものに意味がある。",
-    author: "アルフレッド・アドラー（心理学者）",
-    interpretation: "生きる意味は「到達点」ではありません。今この瞬間にお茶を飲んだり、息を吸ったりしているそのプロセス自体が人生の本体です。"
-  },
-  {
-    id: 3,
-    quote: "生きているということ。いま生きているということ。喉が渇くということ。木漏れ日がまぶしいということ。",
-    author: "谷川俊太郎（詩人 / 『生きる』）",
-    interpretation: "生きる意味を探してしまう時ほど、頭でっかちになっています。喉が渇いて水を飲むこと、それだけで生命は100点満点です。"
-  },
-  {
-    id: 4,
-    quote: "上善は水の如し。水は万物を利して争わず、人の悪（にく）む所に処（お）る。",
-    author: "老子（古代思想家）",
-    interpretation: "無理に誰かより特別になろうとしなくていい。水のように柔らかく、目の前の形に合わせて、ただ流れて生きていけば十分です。"
-  },
-  {
-    id: 5,
-    quote: "人生に壮大な意味なんて最初からなくていい。ただ『今日食べたものが美味しかった』を積み重ねるだけでいい。",
-    author: "現代のカウンセラーの言葉",
-    interpretation: "意味という重荷を一度降ろしてみませんか。今日一日を無事に終えて布団に入れたなら、それだけで素晴らしい一日です。"
-  },
-  {
-    id: 6,
-    quote: "自分自身を愛することこそ、生涯にわたるロマンスの始まりである。",
-    author: "オスカー・ワイルド（作家）",
-    interpretation: "生きる意味が見つからないときは、自分を厳しく責めているときかもしれません。まずは自分に優しくお茶を淹れてあげてください。"
-  },
-  {
-    id: 7,
-    quote: "人生に必要なのは、勇気と想像力、そしてほんの少しのお金（と愛）だけだ。",
-    author: "チャールズ・チャップリン（映画監督・俳優）",
-    interpretation: "難しく考えすぎなくて大丈夫。ちょっとした想像力と、今日をやり過ごす少しの工夫があれば、人生は進んでいきます。"
-  },
-  {
-    id: 8,
-    quote: "人間は生きているだけで誰かの役に立っている。存在そのものが、この世界のパズルを埋める欠かせないピースだ。",
-    author: "アドラー心理学の教え",
-    interpretation: "成果や生産性で自分の価値を測らないでください。あなたがここに息をしていること自体が、誰かにとっての安心になっています。"
-  }
-];
-
-// 今日できる0.1歩のちいさなご褒美アクション
-const TINY_ACTIONS = [
-  "お気に入りの温かい飲み物を淹れて、香りを深く吸い込む",
-  "窓を開けて、外の空気を胸いっぱいに吸って吐き出す",
-  "大好きな曲を1曲だけ、目をつぶって集中して聴く",
-  "今夜はスマホを置いて、いつもより30分早くお布団に入る",
-  "空を見上げて、雲の形をぼーっと眺めてみる",
-  "コンビニで、一番心惹かれたスイーツや飲み物を自分に買ってあげる",
-  "首や肩をゆっくり回して、体のコリを優しくほぐす",
-  "「今日も生きててえらかった」と心の中で自分をぎゅっと抱きしめる"
+// 称号・レベルテーブル
+const TITLES = [
+  { level: 1, name: "一般人", reqExp: 0 },
+  { level: 2, name: "日常の観察者", reqExp: 100 },
+  { level: 3, name: "散歩の達人", reqExp: 300 },
+  { level: 4, name: "二度寝の勇者", reqExp: 600 },
+  { level: 5, name: "深夜の哲学者", reqExp: 1000 },
+  { level: 6, name: "脱力マスター", reqExp: 1600 },
+  { level: 7, name: "無駄の錬金術師", reqExp: 2400 },
+  { level: 8, name: "人生ボーナスステージ突入者", reqExp: 3500 },
+  { level: 9, name: "地球滞在プロフェッショナル", reqExp: 5000 },
+  { level: 10, name: "現世超越神", reqExp: 7500 }
 ];
 
 // アプリ本体
-class App {
+class SubquestApp {
   constructor() {
-    this.currentStep = 0; // 0: Prologue, 1-5: Questions, 6: Prescription, 7: Final Card
-    this.answers = {
-      name: "",
-      senses: [],
-      sensesText: "",
-      unwind: [],
-      unwindText: "",
-      connection: [],
-      connectionText: "",
-      curiosity: [],
-      curiosityText: "",
-      compass: [],
-      selectedPrescription: null,
-      tinyAction: null
-    };
+    this.userExp = parseInt(localStorage.getItem("sq_exp") || "0", 10);
+    this.completedQuests = JSON.parse(localStorage.getItem("sq_completed") || "[]");
+    this.currentQuest = null;
+    this.isSpinning = false;
 
-    this.container = document.getElementById("screenContainer");
-    this.progressBar = document.getElementById("progressBar");
-    this.progressContainer = document.getElementById("progressContainer");
-    this.stepCountText = document.getElementById("stepCountText");
-    this.stepCategoryText = document.getElementById("stepCategoryText");
-    this.soundToggleBtn = document.getElementById("soundToggleBtn");
+    // DOM要素
+    this.idleView = document.getElementById("idleView");
+    this.resultView = document.getElementById("resultView");
+    this.spinBtn = document.getElementById("spinBtn");
+    this.soundBtn = document.getElementById("soundBtn");
     this.soundIcon = document.getElementById("soundIcon");
-    this.soundText = document.getElementById("soundText");
-    this.restartBtn = document.getElementById("restartBtn");
+    this.playerLevelText = document.getElementById("playerLevelText");
+    this.completedCountBadge = document.getElementById("completedCountBadge");
+    this.collectionBtn = document.getElementById("collectionBtn");
+    this.collectionModal = document.getElementById("collectionModal");
+    this.closeModalBtn = document.getElementById("closeModalBtn");
+    this.collectionList = document.getElementById("collectionList");
+    this.shareSiteBtn = document.getElementById("shareSiteBtn");
 
-    this.initEvents();
-    this.render();
+    this.init();
   }
 
-  initEvents() {
-    this.soundToggleBtn.addEventListener("click", () => {
-      const isEnabled = sound.toggle();
-      if (isEnabled) {
+  init() {
+    this.updatePlayerStatus();
+    this.bindEvents();
+    lucide.createIcons();
+  }
+
+  bindEvents() {
+    this.spinBtn.addEventListener("click", () => this.spinGacha());
+
+    this.soundBtn.addEventListener("click", () => {
+      const enabled = se.toggle();
+      if (enabled) {
         this.soundIcon.setAttribute("data-lucide", "volume-2");
-        this.soundText.textContent = "音: オン";
-        this.soundToggleBtn.classList.add("bg-white", "text-[#705E51]", "border-[#D7BAA2]");
       } else {
         this.soundIcon.setAttribute("data-lucide", "volume-x");
-        this.soundText.textContent = "音: オフ";
-        this.soundToggleBtn.classList.remove("bg-white", "text-[#705E51]", "border-[#D7BAA2]");
       }
       lucide.createIcons();
     });
-  }
 
-  resetToStart() {
-    if (this.currentStep > 0) {
-      if (confirm("最初の画面に戻りますか？（入力した内容はいったんリセットされます）")) {
-        this.currentStep = 0;
-        this.answers = {
-          name: "",
-          senses: [],
-          sensesText: "",
-          unwind: [],
-          unwindText: "",
-          connection: [],
-          connectionText: "",
-          curiosity: [],
-          curiosityText: "",
-          compass: [],
-          selectedPrescription: null,
-          tinyAction: null
-        };
-        sound.playTap();
-        this.render();
+    this.collectionBtn.addEventListener("click", () => this.openCollectionModal());
+    this.closeModalBtn.addEventListener("click", () => this.collectionModal.classList.add("hidden"));
+    this.collectionModal.addEventListener("click", (e) => {
+      if (e.target === this.collectionModal) this.collectionModal.classList.add("hidden");
+    });
+
+    this.shareSiteBtn.addEventListener("click", () => {
+      se.playBeep(520, "sine");
+      const shareUrl = window.location.href;
+      const shareText = "「生きる意味？そんなのガチャで引けばいいじゃん。」今日の生きる意味生成器をやってみたww";
+
+      if (navigator.share) {
+        navigator.share({
+          title: "人生のサブクエストガチャ",
+          text: shareText,
+          url: shareUrl
+        }).catch(() => {});
+      } else {
+        navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+        alert("サイトのURLをコピーしました！LINEやSNSで友達に送りつけてみよう！");
       }
-    }
-  }
-
-  render() {
-    this.updateProgress();
-
-    if (this.currentStep === 0) {
-      this.renderPrologue();
-      this.restartBtn.classList.add("hidden");
-    } else if (this.currentStep >= 1 && this.currentStep <= 5) {
-      this.renderQuestion(this.currentStep - 1);
-      this.restartBtn.classList.remove("hidden");
-    } else if (this.currentStep === 6) {
-      this.renderPrescriptionStep();
-      this.restartBtn.classList.remove("hidden");
-    } else if (this.currentStep === 7) {
-      this.renderFinalCard();
-      this.restartBtn.classList.remove("hidden");
-    }
-
-    lucide.createIcons();
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  updateProgress() {
-    if (this.currentStep >= 1 && this.currentStep <= 5) {
-      this.progressContainer.classList.remove("hidden");
-      const percent = (this.currentStep / 5) * 100;
-      this.progressBar.style.width = `${percent}%`;
-      this.stepCountText.textContent = `${this.currentStep} / 5`;
-      this.stepCategoryText.textContent = QUESTIONS[this.currentStep - 1].category;
-    } else {
-      this.progressContainer.classList.add("hidden");
-    }
-  }
-
-  // --- Step 0: プロローグ ---
-  renderPrologue() {
-    this.container.innerHTML = `
-      <div class="fade-in text-center py-4 sm:py-6 flex flex-col items-center">
-        <!-- Leaf / Compass Icon Badge -->
-        <div class="w-16 h-16 rounded-full bg-[#F3ECE1] border border-[#E4D8CA] flex items-center justify-center text-[#876F5E] mb-6 shadow-sm">
-          <i data-lucide="sparkles" class="w-8 h-8 animate-pulse"></i>
-        </div>
-
-        <h1 class="text-2xl sm:text-3xl font-bold font-mincho text-[#4A4036] leading-relaxed mb-4">
-          「生きる意味」に迷ったあなたへ
-        </h1>
-
-        <p class="text-sm sm:text-base text-[#736557] max-w-lg leading-relaxed mb-6 font-normal">
-          生きる意味を考えるのは、あなたが自分の人生を大切に生きようとしている証拠です。<br class="hidden sm:inline">
-          でも、大きな意味なんて最初から見つからなくて大丈夫。<br>
-          意味は探すものではなく、日々のちいさな温もりの中に灯るあかりです。
-        </p>
-
-        <!-- Breathing Widget -->
-        <div class="my-6 p-6 rounded-2xl bg-[#F6EFE6]/80 border border-[#EADFCF] w-full max-w-md flex flex-col items-center">
-          <div class="text-xs font-semibold text-[#8B7766] tracking-wider mb-4 flex items-center gap-1.5">
-            <i data-lucide="wind" class="w-4 h-4"></i>
-            <span>心をほどく深呼吸ガイド</span>
-          </div>
-
-          <div class="relative w-32 h-32 flex items-center justify-center my-2">
-            <div class="breath-circle absolute inset-0 rounded-full bg-gradient-to-tr from-[#D7BAA2] to-[#B8CFB7] opacity-60"></div>
-            <div class="relative z-10 text-center">
-              <span id="breathText" class="text-sm font-semibold text-[#57493E]">息を吸って…</span>
-            </div>
-          </div>
-          <p class="text-[12px] text-[#9A8778] mt-3">肩の力を抜いて、楽なペースで呼吸してみてください。</p>
-        </div>
-
-        <!-- Start CTA -->
-        <div class="mt-4 w-full max-w-sm">
-          <button id="startJourneyBtn" class="w-full py-3.5 px-6 rounded-2xl bg-[#7A6656] text-white font-medium hover:bg-[#685547] shadow-[0_4px_16px_rgba(122,102,86,0.3)] transition-all active:scale-[0.98] flex items-center justify-center gap-2">
-            <span>少しだけ、心の声を聞いてみる</span>
-            <i data-lucide="arrow-right" class="w-4 h-4"></i>
-          </button>
-          <p class="text-[11px] text-[#A6978A] mt-2.5">所要時間: 3〜4分 / 途中でやめても大丈夫です</p>
-        </div>
-      </div>
-    `;
-
-    // 呼吸テキストの定期切り替え
-    let breathPhase = 0;
-    const breathWords = ["息を吸って… (4秒)", "そのまま止めて… (4秒)", "ゆっくり吐き出して… (6秒)"];
-    const breathInterval = setInterval(() => {
-      const breathEl = document.getElementById("breathText");
-      if (!breathEl) {
-        clearInterval(breathInterval);
-        return;
-      }
-      breathPhase = (breathPhase + 1) % 3;
-      breathEl.textContent = breathWords[breathPhase];
-    }, 4500);
-
-    document.getElementById("startJourneyBtn").addEventListener("click", () => {
-      sound.playTap();
-      this.currentStep = 1;
-      this.render();
     });
   }
 
-  // --- Step 1〜5: 質問ジャーナリング ---
-  renderQuestion(index) {
-    const q = QUESTIONS[index];
-    const key = q.storageKey;
+  updatePlayerStatus() {
+    let currentTitle = TITLES[0];
+    for (let t of TITLES) {
+      if (this.userExp >= t.reqExp) {
+        currentTitle = t;
+      }
+    }
+    this.playerLevelText.textContent = `Lv.${currentTitle.level} ${currentTitle.name}`;
+    this.completedCountBadge.textContent = this.completedQuests.length;
+    localStorage.setItem("sq_exp", this.userExp.toString());
+  }
 
-    if (q.type === "compass") {
-      this.renderCompassQuestion(q);
+  // ガチャ抽選ロジック
+  drawRandomQuest() {
+    // 確率テーブル: N: 40%, R: 35%, SR: 18%, SSR: 6%, UR: 1%
+    const rand = Math.random() * 100;
+    let targetRarity = "N";
+
+    if (rand < 1) targetRarity = "UR";
+    else if (rand < 7) targetRarity = "SSR";
+    else if (rand < 25) targetRarity = "SR";
+    else if (rand < 60) targetRarity = "R";
+    else targetRarity = "N";
+
+    const filtered = QUEST_POOL.filter(q => q.rarity === targetRarity);
+    return filtered[Math.floor(Math.random() * filtered.length)];
+  }
+
+  spinGacha() {
+    if (this.isSpinning) return;
+    this.isSpinning = true;
+
+    se.playDrumroll();
+
+    // カプセルをガタガタ激しく回転させる演出
+    const capsuleEl = this.idleView.querySelector(".capsule-bounce");
+    if (capsuleEl) {
+      capsuleEl.classList.remove("capsule-bounce");
+      capsuleEl.classList.add("spinning-anim");
+    }
+
+    setTimeout(() => {
+      this.currentQuest = this.drawRandomQuest();
+      this.showResult(this.currentQuest);
+      this.isSpinning = false;
+
+      if (capsuleEl) {
+        capsuleEl.classList.remove("spinning-anim");
+        capsuleEl.classList.add("capsule-bounce");
+      }
+    }, 1100);
+  }
+
+  showResult(quest) {
+    this.idleView.classList.add("hidden");
+    this.resultView.classList.remove("hidden");
+
+    se.playFanfare(quest.rarity);
+
+    // UR/SSR時は紙吹雪！
+    if (quest.rarity === "UR" || quest.rarity === "SSR") {
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+    }
+
+    // レア度に応じたバッジ色とスタイル
+    const rarityColors = {
+      N: "bg-[#E5DFD7] text-[#4A423C] border-[#2B231D]",
+      R: "bg-[#7CD5FF] text-[#113B56] border-[#2B231D]",
+      SR: "bg-[#FFDA55] text-[#523B00] border-[#2B231D]",
+      SSR: "bg-[#FF7BB0] text-[#540B28] border-[#2B231D]",
+      UR: "rarity-ur text-white border-[#2B231D] shadow-[0_0_15px_rgba(255,107,107,0.6)]"
+    };
+
+    const isAlreadyCompleted = this.completedQuests.some(q => q.id === quest.id);
+
+    this.resultView.innerHTML = `
+      <div id="questCardCapture" class="relative bg-white border-3 border-[#2B231D] rounded-3xl p-6 sm:p-7 shadow-[8px_8px_0_#2B231D] overflow-hidden">
+        
+        <!-- Stamp container -->
+        <div id="stampContainer" class="absolute right-4 bottom-16 pointer-events-none z-20 ${isAlreadyCompleted ? '' : 'hidden'}">
+          <div class="stamp-anim px-4 py-1.5 border-4 border-[#FF3838] text-[#FF3838] font-black text-xl rounded-xl rotate-[-12deg] tracking-widest bg-white/90 shadow-lg">
+            達成済み！
+          </div>
+        </div>
+
+        <!-- Top Rarity & Category -->
+        <div class="flex items-center justify-between border-b-2 border-[#2B231D] pb-3 mb-4">
+          <div class="flex items-center gap-2">
+            <span class="px-3 py-1 rounded-xl text-xs font-black border-2 ${rarityColors[quest.rarity]} shadow-[2px_2px_0_#2B231D]">
+              ${quest.rarity}
+            </span>
+            <span class="text-xs font-extrabold text-[#75665D]">【${quest.category}】</span>
+          </div>
+          <div class="text-xs font-black text-amber-500">
+            難易度: ${quest.difficulty}
+          </div>
+        </div>
+
+        <!-- Quest Icon & Title -->
+        <div class="text-center my-3">
+          <div class="text-5xl mb-3 select-none transform hover:scale-110 transition-transform inline-block">
+            ${quest.icon}
+          </div>
+          <h2 class="text-lg sm:text-xl font-black text-[#2B231D] leading-snug tracking-tight">
+            ${quest.title}
+          </h2>
+        </div>
+
+        <!-- Quest Comment / Meaning -->
+        <div class="my-4 p-3.5 bg-[#FFF9E6] border-2 border-[#2B231D] rounded-2xl text-xs sm:text-sm font-bold text-[#57493E] leading-relaxed shadow-[2px_2px_0_#2B231D]">
+          <span class="block text-[11px] font-black text-[#FF5A5F] mb-1">💡 クエストの意義：</span>
+          ${quest.comment}
+        </div>
+
+        <!-- Quest Rewards -->
+        <div class="flex items-center justify-between bg-[#F5F2EB] border-2 border-[#2B231D] rounded-xl px-4 py-2.5 text-xs font-black mb-1">
+          <span class="text-[#69584E]">達成報酬</span>
+          <span class="text-[#FF5A5F] flex items-center gap-1">
+            <span>✨</span>
+            <span>+${quest.exp} EXP 獲得</span>
+          </span>
+        </div>
+
+      </div>
+
+      <!-- Result Action Buttons -->
+      <div class="mt-5 space-y-2.5">
+        <!-- Complete Button -->
+        <button id="completeBtn" class="w-full py-3.5 px-6 rounded-2xl ${isAlreadyCompleted ? 'bg-[#DCD4CA] text-[#75685E] border-2 border-[#A8988C] cursor-default' : 'bg-[#43B581] hover:bg-[#3AA373] text-white border-3 border-[#2B231D] shadow-[0_5px_0_#267551] active:translate-y-1 active:shadow-[0_0px_0_#267551]'} font-black text-base transition-all flex items-center justify-center gap-2">
+          <i data-lucide="check-circle" class="w-5 h-5"></i>
+          <span>${isAlreadyCompleted ? '達成済みです！' : 'この生きる意味を達成した！'}</span>
+        </button>
+
+        <div class="grid grid-cols-2 gap-2">
+          <!-- Re-spin Button -->
+          <button id="respinBtn" class="py-3 px-4 rounded-2xl bg-white border-2 border-[#2B231D] text-[#2B231D] font-black text-xs sm:text-sm shadow-[3px_3px_0_#2B231D] hover:bg-amber-50 active:translate-y-0.5 transition-all flex items-center justify-center gap-1.5">
+            <i data-lucide="rotate-ccw" class="w-4 h-4 text-[#FF5A5F]"></i>
+            <span>別の意味を引く</span>
+          </button>
+
+          <!-- Share Button -->
+          <button id="shareResultBtn" class="py-3 px-4 rounded-2xl bg-white border-2 border-[#2B231D] text-[#2B231D] font-black text-xs sm:text-sm shadow-[3px_3px_0_#2B231D] hover:bg-amber-50 active:translate-y-0.5 transition-all flex items-center justify-center gap-1.5">
+            <i data-lucide="share-2" class="w-4 h-4 text-sky-500"></i>
+            <span>友達に見せる</span>
+          </button>
+        </div>
+
+        <!-- Download Card as Image -->
+        <button id="downloadCardBtn" class="w-full py-2.5 px-4 rounded-xl bg-transparent text-[#7D6B60] hover:text-[#2B231D] font-black text-xs flex items-center justify-center gap-1.5 transition-colors">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i>
+          <span>このクエストをお守り画像として保存</span>
+        </button>
+      </div>
+    `;
+
+    lucide.createIcons();
+
+    // イベント設定
+    const completeBtn = document.getElementById("completeBtn");
+    if (!isAlreadyCompleted) {
+      completeBtn.addEventListener("click", () => this.completeQuest(quest));
+    }
+
+    document.getElementById("respinBtn").addEventListener("click", () => {
+      se.playBeep(480, "sine");
+      this.resultView.classList.add("hidden");
+      this.idleView.classList.remove("hidden");
+    });
+
+    document.getElementById("shareResultBtn").addEventListener("click", () => {
+      se.playBeep(520, "sine");
+      const text = `今日の私の生きる意味は【${quest.title}】(${quest.rarity})でしたwww\n#人生のサブクエストガチャ`;
+      const url = window.location.href;
+
+      if (navigator.share) {
+        navigator.share({ title: "人生のサブクエストガチャ", text, url }).catch(() => {});
+      } else {
+        navigator.clipboard.writeText(`${text}\n${url}`);
+        alert("テキストをコピーしました！友達とのLINEやXに貼り付けてみてね！");
+      }
+    });
+
+    document.getElementById("downloadCardBtn").addEventListener("click", () => {
+      se.playBeep(520, "sine");
+      const cardEl = document.getElementById("questCardCapture");
+      html2canvas(cardEl, { scale: 2, backgroundColor: null }).then(canvas => {
+        const link = document.createElement("a");
+        link.download = `生きる意味クエスト_${quest.rarity}_${quest.title.slice(0, 10)}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      });
+    });
+  }
+
+  completeQuest(quest) {
+    se.playSuccess();
+
+    // 経験値加算
+    this.userExp += quest.exp;
+    this.completedQuests.push({
+      ...quest,
+      completedAt: new Date().toLocaleDateString("ja-JP")
+    });
+
+    localStorage.setItem("sq_completed", JSON.stringify(this.completedQuests));
+    this.updatePlayerStatus();
+
+    // スタンプ表示 & 紙吹雪
+    const stamp = document.getElementById("stampContainer");
+    stamp.classList.remove("hidden");
+
+    confetti({
+      particleCount: 60,
+      spread: 60,
+      origin: { y: 0.7 }
+    });
+
+    // ボタンの見た目更新
+    const completeBtn = document.getElementById("completeBtn");
+    completeBtn.className = "w-full py-3.5 px-6 rounded-2xl bg-[#DCD4CA] text-[#75685E] border-2 border-[#A8988C] font-black text-base cursor-default flex items-center justify-center gap-2";
+    completeBtn.innerHTML = `<span>達成済みです！ (+${quest.exp} EXP)</span>`;
+  }
+
+  openCollectionModal() {
+    se.playBeep(440, "sine");
+    this.collectionModal.classList.remove("hidden");
+
+    if (this.completedQuests.length === 0) {
+      this.collectionList.innerHTML = `
+        <div class="text-center py-10 text-[#8C7A6F]">
+          <p class="text-3xl mb-2">📦</p>
+          <p class="font-bold text-sm">まだ達成したクエストがありません！</p>
+          <p class="text-xs mt-1">ガチャを回して今日の生きる意味をクリアしよう。</p>
+        </div>
+      `;
       return;
     }
 
-    const currentChips = this.answers[key] || [];
-    const currentText = this.answers[`${key}Text`] || "";
-
-    this.container.innerHTML = `
-      <div class="fade-in flex flex-col justify-between h-full">
-        <div>
-          <!-- Question Header -->
-          <div class="mb-4">
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#EFE5D9] text-[#7A6656] mb-3">
-              <i data-lucide="compass" class="w-3.5 h-3.5"></i>
-              ${q.category}
-            </span>
-            <h2 class="text-xl sm:text-2xl font-bold font-mincho text-[#463D34] leading-relaxed mb-2">
-              ${q.title}
-            </h2>
-            <p class="text-xs sm:text-sm text-[#87786B] leading-relaxed">
-              ${q.subtitle}
-            </p>
-          </div>
-
-          <!-- Suggested Chips -->
-          <div class="mb-5">
-            <label class="block text-xs font-semibold text-[#78695D] mb-2">
-              心に浮かぶものをタップ（複数選べます）:
-            </label>
-            <div class="flex flex-wrap gap-2" id="chipsContainer">
-              ${q.chips.map(chip => {
-                const isSelected = currentChips.includes(chip);
-                return `
-                  <button type="button" class="chip-btn px-3.5 py-1.5 rounded-full text-xs sm:text-sm border border-[#E2D5C7] bg-[#FCF8F2] text-[#615447] ${isSelected ? 'selected' : ''}" data-chip="${chip}">
-                    ${chip}
-                  </button>
-                `;
-              }).join("")}
+    this.collectionList.innerHTML = this.completedQuests.map((q, idx) => `
+      <div class="p-3 bg-[#FAF7EE] border-2 border-[#2B231D] rounded-xl flex items-center justify-between gap-2 shadow-[2px_2px_0_#2B231D]">
+        <div class="flex items-center gap-2 overflow-hidden">
+          <span class="text-2xl flex-shrink-0">${q.icon}</span>
+          <div class="truncate">
+            <div class="flex items-center gap-1.5">
+              <span class="text-[10px] font-black px-1.5 py-0.5 rounded border border-[#2B231D] bg-white">${q.rarity}</span>
+              <span class="text-xs font-black text-[#2B231D] truncate">${q.title}</span>
             </div>
-          </div>
-
-          <!-- Custom Text Input -->
-          <div class="mb-4">
-            <label for="freeTextInput" class="block text-xs font-semibold text-[#78695D] mb-1.5">
-              あなたの言葉で言葉にしてみたいこと（任意）:
-            </label>
-            <textarea id="freeTextInput" rows="2" class="w-full px-4 py-2.5 rounded-xl border border-[#DFD3C4] bg-white/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#C7B29F] text-sm text-[#4E443A] placeholder-[#B5A597] transition-all resize-none" placeholder="${q.placeholder}">${currentText}</textarea>
+            <span class="text-[10px] text-[#8C7B71]">${q.completedAt} 達成</span>
           </div>
         </div>
-
-        <!-- Navigation Buttons -->
-        <div class="pt-4 border-t border-[#EDE3D6] flex items-center justify-between gap-3">
-          <button id="prevBtn" class="py-2.5 px-4 rounded-xl text-xs sm:text-sm font-medium text-[#7D6E61] hover:bg-[#F2EAE0] transition-colors flex items-center gap-1.5">
-            <i data-lucide="chevron-left" class="w-4 h-4"></i>
-            <span>前へ</span>
-          </button>
-
-          <div class="flex items-center gap-2">
-            <button id="skipBtn" class="py-2.5 px-3 rounded-xl text-xs text-[#9E8E81] hover:text-[#5F5145] hover:bg-[#F2EAE0] transition-colors">
-              今は思いつかない（スキップ）
-            </button>
-            <button id="nextBtn" class="py-2.5 px-6 rounded-xl bg-[#7A6656] text-white text-xs sm:text-sm font-medium hover:bg-[#685547] shadow-sm transition-all active:scale-[0.98] flex items-center gap-1.5">
-              <span>次へ進む</span>
-              <i data-lucide="chevron-right" class="w-4 h-4"></i>
-            </button>
-          </div>
-        </div>
+        <span class="text-xs font-black text-emerald-600 flex-shrink-0">済</span>
       </div>
-    `;
-
-    // Chip Click Events
-    const chipBtns = this.container.querySelectorAll(".chip-btn");
-    chipBtns.forEach(btn => {
-      btn.addEventListener("click", () => {
-        sound.playTap();
-        const chip = btn.getAttribute("data-chip");
-        if (this.answers[key].includes(chip)) {
-          this.answers[key] = this.answers[key].filter(c => c !== chip);
-          btn.classList.remove("selected");
-        } else {
-          this.answers[key].push(chip);
-          btn.classList.add("selected");
-        }
-      });
-    });
-
-    // Text Area Event
-    const textArea = document.getElementById("freeTextInput");
-    textArea.addEventListener("input", (e) => {
-      this.answers[`${key}Text`] = e.target.value;
-    });
-
-    // Navigation Events
-    document.getElementById("prevBtn").addEventListener("click", () => {
-      sound.playTap();
-      this.currentStep--;
-      this.render();
-    });
-
-    document.getElementById("skipBtn").addEventListener("click", () => {
-      sound.playTap();
-      this.currentStep++;
-      this.render();
-    });
-
-    document.getElementById("nextBtn").addEventListener("click", () => {
-      sound.playTap();
-      this.currentStep++;
-      this.render();
-    });
-  }
-
-  // --- Step 5: 人生の北極星（大切にしたい感覚） ---
-  renderCompassQuestion(q) {
-    const selected = this.answers.compass || [];
-
-    this.container.innerHTML = `
-      <div class="fade-in flex flex-col justify-between h-full">
-        <div>
-          <div class="mb-4">
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#EFE5D9] text-[#7A6656] mb-3">
-              <i data-lucide="compass" class="w-3.5 h-3.5"></i>
-              ${q.category}
-            </span>
-            <h2 class="text-xl sm:text-2xl font-bold font-mincho text-[#463D34] leading-relaxed mb-2">
-              ${q.title}
-            </h2>
-            <p class="text-xs sm:text-sm text-[#87786B] leading-relaxed">
-              ${q.subtitle}
-            </p>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4" id="compassOptions">
-            ${q.options.map(opt => {
-              const isChecked = selected.includes(opt.id);
-              return `
-                <div class="compass-card cursor-pointer p-4 rounded-2xl border transition-all duration-200 ${isChecked ? 'bg-[#7A6656] text-white border-[#7A6656] shadow-md' : 'bg-[#FCF8F3] hover:bg-[#F5ECE0] text-[#55493D] border-[#E5DACD]'}" data-id="${opt.id}">
-                  <div class="flex items-center gap-2 mb-1.5">
-                    <i data-lucide="${opt.icon}" class="w-4 h-4 ${isChecked ? 'text-amber-200' : 'text-[#8C7A6B]'}"></i>
-                    <h3 class="text-sm font-bold ${isChecked ? 'text-white' : 'text-[#483E34]'}">${opt.label}</h3>
-                  </div>
-                  <p class="text-xs leading-relaxed ${isChecked ? 'text-amber-100/90' : 'text-[#847466]'}">${opt.desc}</p>
-                </div>
-              `;
-            }).join("")}
-          </div>
-        </div>
-
-        <div class="pt-4 border-t border-[#EDE3D6] flex items-center justify-between gap-3">
-          <button id="prevBtn" class="py-2.5 px-4 rounded-xl text-xs sm:text-sm font-medium text-[#7D6E61] hover:bg-[#F2EAE0] transition-colors flex items-center gap-1.5">
-            <i data-lucide="chevron-left" class="w-4 h-4"></i>
-            <span>前へ</span>
-          </button>
-
-          <button id="nextBtn" class="py-2.5 px-6 rounded-xl bg-[#7A6656] text-white text-xs sm:text-sm font-medium hover:bg-[#685547] shadow-sm transition-all active:scale-[0.98] flex items-center gap-1.5">
-            <span>言葉の処方箋へ</span>
-            <i data-lucide="sparkles" class="w-4 h-4"></i>
-          </button>
-        </div>
-      </div>
-    `;
-
-    const cards = this.container.querySelectorAll(".compass-card");
-    cards.forEach(card => {
-      card.addEventListener("click", () => {
-        sound.playTap();
-        const id = card.getAttribute("data-id");
-        if (this.answers.compass.includes(id)) {
-          this.answers.compass = this.answers.compass.filter(x => x !== id);
-        } else {
-          if (this.answers.compass.length >= 2) {
-            // 最大2つまで：古い方を押し出す
-            this.answers.compass.shift();
-          }
-          this.answers.compass.push(id);
-        }
-        this.renderCompassQuestion(q);
-        lucide.createIcons();
-      });
-    });
-
-    document.getElementById("prevBtn").addEventListener("click", () => {
-      sound.playTap();
-      this.currentStep--;
-      this.render();
-    });
-
-    document.getElementById("nextBtn").addEventListener("click", () => {
-      if (this.answers.compass.length === 0) {
-        // 未選択の場合はデフォルトで「安心・平穏」をセット
-        this.answers.compass = ["peace"];
-      }
-      sound.playTap();
-      this.currentStep = 6;
-      this.render();
-    });
-  }
-
-  // --- Step 6: 心に効く「言葉の処方箋」 ---
-  renderPrescriptionStep() {
-    if (!this.answers.selectedPrescription) {
-      // 初期値はランダムで1つ選択
-      const randomIdx = Math.floor(Math.random() * PRESCRIPTIONS.length);
-      this.answers.selectedPrescription = PRESCRIPTIONS[randomIdx];
-    }
-
-    const currentP = this.answers.selectedPrescription;
-
-    this.container.innerHTML = `
-      <div class="fade-in flex flex-col justify-between h-full">
-        <div>
-          <div class="mb-4 text-center">
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#EFE5D9] text-[#7A6656] mb-2">
-              <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
-              こもれびの処方箋
-            </span>
-            <h2 class="text-xl sm:text-2xl font-bold font-mincho text-[#463D34] leading-relaxed">
-              心に灯す、ひとつの言葉
-            </h2>
-            <p class="text-xs sm:text-sm text-[#87786B] mt-1">
-              今のあなたの心に、いちばんやさしく染み込む言葉を選びました。
-            </p>
-          </div>
-
-          <!-- Featured Prescription Card -->
-          <div class="my-4 p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-[#FFF9F2] via-[#F8EFE2] to-[#EEF5ED] border border-[#E2D5C5] shadow-sm relative overflow-hidden">
-            <i data-lucide="quote" class="absolute -right-2 -bottom-4 w-28 h-28 text-[#DDCFC0]/30 pointer-events-none"></i>
-
-            <p class="text-base sm:text-lg font-bold font-mincho text-[#413830] leading-relaxed mb-4 relative z-10">
-              「${currentP.quote}」
-            </p>
-
-            <div class="text-xs sm:text-sm font-semibold text-[#8C7A6B] mb-4 relative z-10 flex items-center gap-1.5">
-              <span>― ${currentP.author}</span>
-            </div>
-
-            <div class="p-3.5 rounded-xl bg-white/70 border border-[#E9DECE] text-xs sm:text-sm text-[#6A5D50] leading-relaxed relative z-10">
-              <span class="font-bold text-[#86705D] block mb-1">【この言葉の温もり】</span>
-              ${currentP.interpretation}
-            </div>
-          </div>
-
-          <!-- Random Re-roll Button -->
-          <div class="flex justify-center mb-2">
-            <button id="rerollBtn" class="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs bg-[#F2EAE0] hover:bg-[#EADBCC] text-[#6A5A4D] transition-colors border border-[#DDD0C0] shadow-sm">
-              <i data-lucide="dice-5" class="w-3.5 h-3.5"></i>
-              <span>別の言葉を引いてみる</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="pt-4 border-t border-[#EDE3D6] flex items-center justify-between gap-3">
-          <button id="prevBtn" class="py-2.5 px-4 rounded-xl text-xs sm:text-sm font-medium text-[#7D6E61] hover:bg-[#F2EAE0] transition-colors flex items-center gap-1.5">
-            <i data-lucide="chevron-left" class="w-4 h-4"></i>
-            <span>前へ</span>
-          </button>
-
-          <button id="finishBtn" class="py-2.5 px-6 rounded-xl bg-[#7A6656] text-white text-xs sm:text-sm font-medium hover:bg-[#685547] shadow-sm transition-all active:scale-[0.98] flex items-center gap-1.5">
-            <span>あなたのお守りカードを作る</span>
-            <i data-lucide="award" class="w-4 h-4"></i>
-          </button>
-        </div>
-      </div>
-    `;
-
-    document.getElementById("rerollBtn").addEventListener("click", () => {
-      sound.playTap();
-      let nextP;
-      do {
-        nextP = PRESCRIPTIONS[Math.floor(Math.random() * PRESCRIPTIONS.length)];
-      } while (nextP.id === currentP.id);
-      this.answers.selectedPrescription = nextP;
-      this.renderPrescriptionStep();
-      lucide.createIcons();
-    });
-
-    document.getElementById("prevBtn").addEventListener("click", () => {
-      sound.playTap();
-      this.currentStep = 5;
-      this.render();
-    });
-
-    document.getElementById("finishBtn").addEventListener("click", () => {
-      sound.playChord();
-      // 小さなアクションを決定
-      this.answers.tinyAction = TINY_ACTIONS[Math.floor(Math.random() * TINY_ACTIONS.length)];
-      this.currentStep = 7;
-      this.render();
-    });
-  }
-
-  // --- Step 7: 完成した「お守りカード（心のしおり）」 ---
-  renderFinalCard() {
-    const p = this.answers.selectedPrescription;
-    const compassOptions = QUESTIONS[4].options;
-    const compassLabels = (this.answers.compass || ["peace"])
-      .map(id => compassOptions.find(o => o.id === id)?.label)
-      .filter(Boolean)
-      .join(" ・ ");
-
-    // 集まった小さな光（チップや自由入力を統合）
-    const allLights = [];
-    if (this.answers.senses.length) allLights.push(...this.answers.senses);
-    if (this.answers.sensesText) allLights.push(this.answers.sensesText);
-    if (this.answers.unwind.length) allLights.push(...this.answers.unwind);
-    if (this.answers.unwindText) allLights.push(this.answers.unwindText);
-    if (this.answers.connection.length) allLights.push(...this.answers.connection);
-    if (this.answers.connectionText) allLights.push(this.answers.connectionText);
-    if (this.answers.curiosity.length) allLights.push(...this.answers.curiosity);
-    if (this.answers.curiosityText) allLights.push(this.answers.curiosityText);
-
-    // 重複除去 & 最大4つまで抽出
-    const uniqueLights = Array.from(new Set(allLights.filter(Boolean))).slice(0, 4);
-    if (uniqueLights.length === 0) {
-      uniqueLights.push("今日息をしていること", "温かいお茶の美味しさ", "静かな夜の安心感");
-    }
-
-    const todayDate = new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
-
-    this.container.innerHTML = `
-      <div class="fade-in flex flex-col justify-between">
-        <div class="text-center mb-6">
-          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#EAE0D3] text-[#6F5D4E] mb-2">
-            <i data-lucide="check" class="w-3.5 h-3.5"></i>
-            心のしおりが完成しました
-          </div>
-          <h2 class="text-2xl sm:text-3xl font-bold font-mincho text-[#443B32]">
-            あなただけのお守り羅針盤
-          </h2>
-          <p class="text-xs sm:text-sm text-[#87786B] mt-1">
-            生きる意味に迷ったとき、いつでもこのカードを見返してください。
-          </p>
-        </div>
-
-        <!-- Downloadable Card Component -->
-        <div class="w-full flex justify-center mb-6">
-          <div id="finalOmamoriCard" class="w-full max-w-lg p-6 sm:p-8 rounded-3xl border-2 border-[#D7C7B5] shadow-lg text-[#473D34]">
-            
-            <!-- Card Header -->
-            <div class="flex items-center justify-between border-b border-[#E1D3C2] pb-3 mb-4">
-              <div class="flex items-center gap-2">
-                <div class="w-6 h-6 rounded-full bg-[#E4D5C4] flex items-center justify-center text-[#746252]">
-                  <i data-lucide="compass" class="w-3.5 h-3.5"></i>
-                </div>
-                <span class="text-xs font-semibold font-mincho tracking-wider text-[#635446]">こもれびの羅針盤</span>
-              </div>
-              <span class="text-[11px] text-[#9A897B]">${todayDate}</span>
-            </div>
-
-            <!-- Compass Point -->
-            <div class="mb-4 text-center bg-white/60 backdrop-blur-sm p-3 rounded-2xl border border-white/70">
-              <span class="text-[11px] font-bold tracking-widest text-[#947E6D] uppercase block mb-0.5">MY COMPASS / あなたの北極星</span>
-              <span class="text-base sm:text-lg font-bold font-mincho text-[#524436]">
-                「${compassLabels || "安心・平穏"}」
-              </span>
-            </div>
-
-            <!-- 3 Little Lights -->
-            <div class="mb-4">
-              <span class="text-xs font-bold text-[#867362] block mb-2 flex items-center gap-1.5">
-                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
-                いま心にある小さな光
-              </span>
-              <div class="flex flex-wrap gap-1.5">
-                ${uniqueLights.map(light => `
-                  <span class="inline-block px-3 py-1 rounded-full text-xs bg-white/80 border border-[#E3D7C9] text-[#55473A] shadow-xs">
-                    ${light}
-                  </span>
-                `).join("")}
-              </div>
-            </div>
-
-            <!-- The Prescription Quote -->
-            <div class="p-4 rounded-2xl bg-white/70 backdrop-blur-sm border border-[#E8DDCE] mb-4">
-              <span class="text-[11px] font-bold text-[#8C7A6A] block mb-1">【あなたへ贈る言葉】</span>
-              <p class="text-xs sm:text-sm font-mincho font-semibold text-[#483F36] leading-relaxed mb-1.5">
-                「${p.quote}」
-              </p>
-              <p class="text-[11px] text-right text-[#968576]">― ${p.author}</p>
-            </div>
-
-            <!-- Today's 0.1 Step -->
-            <div class="p-3.5 rounded-xl bg-[#F4ECE1]/90 border border-[#DFD1BF] text-center">
-              <span class="text-[11px] font-bold text-[#887463] block mb-0.5">🌱 今日できる、0.1歩のやさしいご褒美</span>
-              <p class="text-xs font-medium text-[#504439]">${this.answers.tinyAction}</p>
-            </div>
-
-            <!-- Bottom message -->
-            <div class="mt-4 pt-3 border-t border-[#E5D7C7] text-center">
-              <p class="text-[11px] text-[#9A8A7C]">あなたは今日を生きているだけで、もう充分えらいです。</p>
-            </div>
-
-          </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-          <button id="downloadCardBtn" class="w-full sm:w-auto py-3 px-6 rounded-2xl bg-[#7A6656] text-white text-xs sm:text-sm font-medium hover:bg-[#685547] shadow-[0_4px_14px_rgba(122,102,86,0.25)] transition-all active:scale-[0.98] flex items-center justify-center gap-2">
-            <i data-lucide="download" class="w-4 h-4"></i>
-            <span>お守り画像を保存する</span>
-          </button>
-
-          <button id="copySummaryBtn" class="w-full sm:w-auto py-3 px-5 rounded-2xl bg-white border border-[#D9CCBE] text-[#635345] text-xs sm:text-sm font-medium hover:bg-[#FAF4ED] transition-all flex items-center justify-center gap-2">
-            <i data-lucide="copy" class="w-4 h-4"></i>
-            <span>テキストをコピー</span>
-          </button>
-
-          <button id="anotherActionBtn" class="w-full sm:w-auto py-3 px-4 rounded-2xl text-[#8E7E70] text-xs hover:bg-[#F2EAE0] transition-colors flex items-center justify-center gap-1.5" title="今日のご褒美を変える">
-            <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
-            <span>別のご褒美にする</span>
-          </button>
-        </div>
-
-        <div class="mt-6 text-center">
-          <button id="retakeBtn" class="text-xs text-[#9B8B7D] underline hover:text-[#584C3F] transition-colors">
-            もう一度最初から向き合う
-          </button>
-        </div>
-      </div>
-    `;
-
-    // Download Image via html2canvas
-    document.getElementById("downloadCardBtn").addEventListener("click", () => {
-      sound.playTap();
-      const cardEl = document.getElementById("finalOmamoriCard");
-      const downloadBtn = document.getElementById("downloadCardBtn");
-      downloadBtn.innerHTML = `<span>保存中...</span>`;
-
-      html2canvas(cardEl, {
-        scale: 2,
-        backgroundColor: null,
-        useCORS: true
-      }).then(canvas => {
-        const link = document.createElement("a");
-        link.download = `こもれびの羅針盤_${new Date().toISOString().slice(0, 10)}.png`;
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-        downloadBtn.innerHTML = `<i data-lucide="check" class="w-4 h-4"></i><span>保存しました！</span>`;
-        lucide.createIcons();
-        setTimeout(() => {
-          downloadBtn.innerHTML = `<i data-lucide="download" class="w-4 h-4"></i><span>お守り画像を保存する</span>`;
-          lucide.createIcons();
-        }, 2500);
-      }).catch(err => {
-        console.error(err);
-        alert("画像の保存に失敗しました。スクリーンショット等をご利用ください。");
-        downloadBtn.innerHTML = `<i data-lucide="download" class="w-4 h-4"></i><span>お守り画像を保存する</span>`;
-        lucide.createIcons();
-      });
-    });
-
-    // Copy Summary Text
-    document.getElementById("copySummaryBtn").addEventListener("click", () => {
-      sound.playTap();
-      const textToCopy = `【こもれびの羅針盤 - 心のお守り】
-■ 私の北極星：${compassLabels || "安心・平穏"}
-■ 心にある小さな光：${uniqueLights.join("、")}
-■ 心に灯す言葉：「${p.quote}」 (― ${p.author})
-■ 今日できる0.1歩：${this.answers.tinyAction}
-― あなたは今日を生きているだけで、もう充分えらいです。`;
-
-      navigator.clipboard.writeText(textToCopy).then(() => {
-        const copyBtn = document.getElementById("copySummaryBtn");
-        copyBtn.innerHTML = `<i data-lucide="check" class="w-4 h-4 text-emerald-600"></i><span>コピー完了！</span>`;
-        lucide.createIcons();
-        setTimeout(() => {
-          copyBtn.innerHTML = `<i data-lucide="copy" class="w-4 h-4"></i><span>テキストをコピー</span>`;
-          lucide.createIcons();
-        }, 2000);
-      });
-    });
-
-    // Change Tiny Action
-    document.getElementById("anotherActionBtn").addEventListener("click", () => {
-      sound.playTap();
-      let nextAction;
-      do {
-        nextAction = TINY_ACTIONS[Math.floor(Math.random() * TINY_ACTIONS.length)];
-      } while (nextAction === this.answers.tinyAction);
-      this.answers.tinyAction = nextAction;
-      this.renderFinalCard();
-      lucide.createIcons();
-    });
-
-    // Retake
-    document.getElementById("retakeBtn").addEventListener("click", () => {
-      this.resetToStart();
-    });
+    `).reverse().join("");
   }
 }
 
-// アプリの起動
-let app;
+// 起動
 window.addEventListener("DOMContentLoaded", () => {
-  app = new App();
+  new SubquestApp();
 });
